@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>Debt Manager Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{margin:0;font-family:Arial;color:#fff;background:#000;direction:rtl}
+.hidden{display:none}
+#lock{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000}
+.lock-box{background:#111;padding:30px;border-radius:16px;width:90%;max-width:340px;text-align:center}
+.lock-box input,.lock-box button{width:100%;padding:14px;margin-top:12px;border-radius:10px;border:none}
+.lock-box input{background:#222;color:#fff}
+.lock-box button{background:#0f0;color:#000;font-weight:bold}
+header{padding:16px;text-align:center;font-size:20px;font-weight:bold;border-bottom:1px solid #222}
+.card{background:#111;margin:16px;padding:14px;border-radius:14px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form input,.form select,.form button{padding:12px;border-radius:10px;border:1px solid #444;background:#222;color:#fff}
+.form button{grid-column:1/3;background:#0f0;color:#000;font-weight:bold}
+table{width:100%;border-collapse:collapse}
+th,td{padding:12px;border-bottom:1px solid #222;text-align:center}
+th{background:#1a1a1a}
+tr.in{background:rgba(0,255,0,.15)}
+tr.out{background:rgba(255,0,0,.15)}
+.type-in{color:#0f0;font-weight:bold}
+.type-out{color:#f00;font-weight:bold}
+.currency{color:#aaa}
+.summary{display:flex;justify-content:space-between;margin:16px;background:#111;padding:14px;border-radius:14px}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div class="lock-box">
+    <h2>🔐 دخول</h2>
+    <input id="pin" type="password" placeholder="PIN">
+    <button onclick="unlock()">فتح</button>
+    <p id="err" style="color:red"></p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+<header>💼 Debt Manager Pro</header>
+
+<div class="card">
+  <div class="form">
+    <input id="name" placeholder="الاسم">
+    <select id="type">
+      <option value="in">IN</option>
+      <option value="out">OUT</option>
+    </select>
+    <input id="amount" type="number" placeholder="المبلغ">
+    <select id="currency">
+      <option value="usd">USD</option>
+      <option value="lbp">LBP</option>
+    </select>
+    <button onclick="add()">➕ إضافة</button>
+  </div>
+</div>
+
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>الاسم</th>
+<th>الحالة</th>
+<th>المبلغ</th>
+<th>العملة</th>
+<th>✖</th>
+</tr>
+</thead>
+<tbody id="list"></tbody>
+</table>
+</div>
+
+<div class="summary">
+<div>💵 USD: <b id="usd">0</b></div>
+<div>💰 LBP: <b id="lbp">0</b></div>
+</div>
+</div>
+
+<script>
+const PIN="193758";
+let data=JSON.parse(localStorage.getItem("debts")||"[]");
+
+// ربط العناصر
+const usdElem = document.getElementById("usd");
+const lbpElem = document.getElementById("lbp");
+const list = document.getElementById("list");
+const lock = document.getElementById("lock");
+const app = document.getElementById("app");
+const err = document.getElementById("err");
+
+function unlock(){
+  const pinInput = document.getElementById("pin");
+  if(pinInput.value===PIN){
+    lock.style.display="none";
+    app.classList.remove("hidden");
+    render();
+  } else err.innerText="رمز خطأ";
+}
+
+function add(){
+  const name=document.getElementById("name").value.trim();
+  const amount=+document.getElementById("amount").value;
+  const type=document.getElementById("type").value;
+  const currency=document.getElementById("currency").value;
+
+  if(!name || !amount) return alert("املأ كل الحقول");
+
+  data.push({name,type,amount,currency});
+  save();
+
+  document.getElementById("name").value="";
+  document.getElementById("amount").value="";
+}
+
+function del(i){data.splice(i,1);save()}
+function save(){localStorage.setItem("debts",JSON.stringify(data));render()}
+
+function render(){
+  let usd=0, lbp=0;
+  list.innerHTML="";
+  data.forEach((d,i)=>{
+    const name=d.name||"";
+    const type=d.type||"in";
+    const amount=d.amount||0;
+    const currency=d.currency||"usd";
+
+    const sign = type==="in"?1:-1;
+    if(currency==="usd") usd+=amount*sign;
+    else lbp+=amount*sign;
+
+    list.innerHTML+=`
+      <tr class="${type}">
+        <td>${name}</td>
+        <td class="type-${type}">${type.toUpperCase()}</td>
+        <td>${amount}</td>
+        <td class="currency">${currency}</td>
+        <td><button onclick="del(${i})">❌</button></td>
+      </tr>`;
+  });
+  usdElem.innerText=usd;
+  lbpElem.innerText=lbp;
+}
+
+render();
+</script>
+</body>
+</html>
